@@ -8,7 +8,7 @@ This project sets up a Jenkins CI/CD pipeline using Terraform. The infrastructur
 - [AWS CLI](https://aws.amazon.com/cli/) version 2.x
 - An AWS account with necessary permissions for creating IAM roles, EC2 instances, ECR, ECS, ALB, and VPC
 - A configured AWS CLI profile (use `aws configure` to set this up)
-- SSH key pair for accessing the EC2 instance / GitHub (defaultl used by `~/.ssh/id_rsa.pub`)
+- SSH key pair for accessing the EC2 instance / GitHub (defaultl used by `<repo>/jenkins_example.pub`) Check the terraform/jenkins/variables.tf file for the default value.
 
 ## Getting Started
 
