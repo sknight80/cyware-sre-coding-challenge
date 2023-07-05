@@ -1,0 +1,53 @@
+{
+    "family": "myapp",
+    "networkMode": "awsvpc",
+    "containerDefinitions": [
+      {
+        "name": "myapp",
+        "image": "account-id.dkr.ecr.region.amazonaws.com/my-app-repository:latest",
+        "cpu": 256,
+        "memory": 512,
+        "portMappings": [
+          {
+            "containerPort": 5000,
+            "hostPort": 5000,
+            "protocol": "tcp"
+          }
+        ],
+        "essential": true,
+        "entryPoint": [
+            "python"
+          ],
+          "command": [
+            "app.py"
+          ],
+    
+        "environment": [
+        {
+            "name": "FLASK_ENV",
+            "value": "development"
+        },
+        {
+            "name": "ENVIRONMENT_VARIABLE_NAME",
+            "value": "ENVIRONMENT_VARIABLE_VALUE"
+          }
+        ],
+        
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group" : "/ecs/myapp",
+            "awslogs-region" : "us-east-1",
+            "awslogs-stream-prefix" : "ecs"
+            }
+        }
+      }
+    ],
+    "requiresCompatibilities": [
+      "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::account-id:role/ecsTaskExecutionRole"
+  }
+  

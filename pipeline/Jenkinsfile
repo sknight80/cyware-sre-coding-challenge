@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REPOSITORY_NAME = credentials('docker-repository-name')
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        VPC_ID = credentials('aws-vpc-id')
+    }
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                // Build docker image from flask directory and tag it with the repository name
+                sh "docker build -t $DOCKER_REPOSITORY_NAME:$env.BUILD_ID -f flask/Dockerfile flask/"
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                sh """
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $DOCKER_REPOSITORY_NAME
+                    docker push $DOCKER_REPOSITORY_NAME:$env.BUILD_ID
+                """
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh '''
+                    sed -i "s/account-id/$AWS_ACCOUNT_ID/g" pipeline/task-definition.json
+
+                    aws ecs register-task-definition --cli-input-json file://pipeline/task-definition.json
+
+                    # Check if service exists and create if it does not
+                    SERVICE_EXISTS=$(aws ecs describe-services --cluster jenkins-cluster --services myflask --query "services[?serviceName=='myflask'].serviceName" --output text)
+
+                    if [ -z "$SERVICE_EXISTS" ]; then
+                        subnet_id=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" --query "Subnets[0].SubnetId" --output text)
+                        security_group_id=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" --query "SecurityGroups[0].GroupId" --output text)
+
+                        aws ecs create-service \
+                            --cluster jenkins-cluster \
+                            --service-name myflask \
+                            --task-definition myapp \
+                            --desired-count 1 \
+                            --network-configuration "awsvpcConfiguration={subnets=[${subnet_id}],securityGroups=[${security_group_id}]}"
+                    else
+                        aws ecs update-service \
+                            --cluster jenkins-cluster \
+                            --service myflask \
+                            --task-definition myapp
+                    fi
+                '''
+            }
+        }
+    }
+}
